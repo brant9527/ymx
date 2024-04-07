@@ -1,18 +1,15 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs')
-const db = require('./mongodb')
-const Bluebird = require('Bluebird')
-    // 等待3000毫秒
-const sleep = time => new Promise(resolve => {
-    setTimeout(resolve, time);
-})
 
-const url = `http://chn.lottedfs.cn/kr/display/category/first?dispShopNo1=1200001&treDpth=1`;
+const Bluebird = require('Bluebird')
+
+
+
 const loginUrl = " https://chn.lps.lottedfs.cn/kr/member/login";
 (async() => {
     let dispShopNo1 = ''
     let selectNoIndex = 0
-    let ShopNo = 0
+
     let pageNum = 0
     let isFirst = true
         // 启动一个浏览器
@@ -26,6 +23,8 @@ const loginUrl = " https://chn.lps.lottedfs.cn/kr/member/login";
             '--start-maximized',
             '--start-fullscreen',
             '--window-size=1920,1080',
+            '--disable-web-security' // 禁用 web 安全性，亚马逊可能会拒绝非正常请求
+
             // '--kiosk',
         ],
     });
@@ -45,20 +44,7 @@ const loginUrl = " https://chn.lps.lottedfs.cn/kr/member/login";
             timeout: 60000
         });
     }
-    async function changeShopNo() {
-        pageNum = 0
-        selectNoIndex++
-        return dispShopNo1 = await page.evaluate(selectNoIndex => {
-            let $ = window.$
-            $('#category').click()
-            if (!$('#mainCateInfo > li:nth-child(' + selectNoIndex + ') > a').length) {
-                return false
-            }
-            let no = $('#mainCateInfo > li:nth-child(' + selectNoIndex + ') > a').attr('href').match(/\=(\w+)\&/)[1]
-            $('#mainCateInfo > li:nth-child(' + selectNoIndex + ') > a')[0].click()
-            return no
-        }, selectNoIndex)
-    }
+   
 
     async function login() {
         await page.waitForSelector('#lpointBtn')
@@ -141,22 +127,7 @@ const loginUrl = " https://chn.lps.lottedfs.cn/kr/member/login";
             }
         }
     }
-    async function nextPage() {
-        pageNum++
-        await page.evaluate(pageNum => {
-            let $ = window.$
-            window.fn_movePage(pageNum)
-
-        }, pageNum)
-        const finalResponse = await page.waitForResponse(response => response.url().indexOf('http://chn.lottedfs.cn/kr/display/GetPrdList') > -1 && response.status() === 200, {
-            timeout: 60000
-        });
-        await page.waitForSelector('.paging');
-        // if (isFirst) {
-        //     isFirst = false
-        // }
-        await getData()
-    }
+   
     await page.goto(loginUrl, {
         waitUntil: 'networkidle2', // 网络空闲说明已加载完毕
     });

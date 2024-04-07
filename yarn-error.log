@@ -1,0 +1,36 @@
+Arguments: 
+  /usr/local/bin/node /usr/local/bin/yarn add puppeteer fs Bluebird
+
+PATH: 
+  /Users/zyb/.rvm/gems/ruby-3.0.0/bin:/Users/zyb/.rvm/gems/ruby-3.0.0@global/bin:/Users/zyb/.rvm/rubies/ruby-3.0.0/bin:/Users/zyb/.pyenv/shims:/Users/zyb/.pyenv/bin:/Users/zyb/flutter/bin:/Users/zyb/flutter/.pub-cache/bin:/Users/zyb/flutter/bin:/usr/local/opt/ncurses/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Library/Apple/usr/bin:/Users/zyb/.rvm/gems/ruby-3.0.0/bin:/Users/zyb/.rvm/gems/ruby-3.0.0@global/bin:/Users/zyb/.rvm/rubies/ruby-3.0.0/bin:/Users/zyb/.pyenv/bin:/Users/zyb/flutter/bin:/Users/zyb/flutter/.pub-cache/bin:/usr/local/opt/ncurses/bin:/Users/zyb/Library/Android/sdk/emulator:/Users/zyb/Library/Android/sdk/tools:/Users/zyb/Library/Android/sdk/tools/bin:/Users/zyb/Library/Android/sdk/platform-tools:/Users/zyb/.rvm/bin:/Users/zyb/Library/Android/sdk/emulator:/Users/zyb/Library/Android/sdk/tools:/Users/zyb/Library/Android/sdk/tools/bin:/Users/zyb/Library/Android/sdk/platform-tools
+
+Yarn version: 
+  1.22.4
+
+Node version: 
+  21.7.1
+
+Platform: 
+  darwin x64
+
+Trace: 
+  Error: https://registry.npm.taobao.org/Bluebird: Not found
+      at params.callback [as _callback] (/usr/local/lib/node_modules/yarn/lib/cli.js:66987:18)
+      at self.callback (/usr/local/lib/node_modules/yarn/lib/cli.js:140748:22)
+      at Request.emit (node:events:519:28)
+      at Request.<anonymous> (/usr/local/lib/node_modules/yarn/lib/cli.js:141720:10)
+      at Request.emit (node:events:519:28)
+      at IncomingMessage.<anonymous> (/usr/local/lib/node_modules/yarn/lib/cli.js:141642:12)
+      at Object.onceWrapper (node:events:633:28)
+      at IncomingMessage.emit (node:events:531:35)
+      at endReadableNT (node:internal/streams/readable:1696:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:82:21)
+
+npm manifest: 
+  No manifest
+
+yarn manifest: 
+  No manifest
+
+Lockfile: 
+  No lockfile
