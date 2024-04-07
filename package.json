@@ -1,0 +1,24 @@
+{
+  "name": "pupperteer-getdata",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "bin": "./test.js",
+  "dependencies": {
+    "fs": "^0.0.1-security",
+    "jQuery": "^1.7.4",
+    "jquery": "^3.4.1",
+    "jsdom": "^15.2.1",
+    "mongo": "^0.1.0",
+    "mongoose": "^5.7.11",
+    "pkg": "^5.8.0",
+    "puppeteer": "^2.0.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "build": "pkg . -t macos-x64  --out-path=dist/"
+  },
+  "author": "",
+  "description": ""
+}

@@ -1,14 +1,14 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs')
-const db = require('./mongodb')
-const Bluebird = require('Bluebird')
+
+
     // 等待3000毫秒
 const sleep = time => new Promise(resolve => {
     setTimeout(resolve, time);
 })
 
 const url = `http://chn.lottedfs.cn/kr/display/category/first?dispShopNo1=1200001&treDpth=1`;
-const loginUrl = "https://www.amazon.com/";
+const loginUrl = " https://chn.lps.lottedfs.cn/kr/member/login";
 (async() => {
     let dispShopNo1 = ''
     let selectNoIndex = 0
@@ -26,7 +26,6 @@ const loginUrl = "https://www.amazon.com/";
             '--start-maximized',
             '--start-fullscreen',
             '--window-size=1920,1080',
-            '--disable-web-security'
             // '--kiosk',
         ],
     });
@@ -121,9 +120,8 @@ const loginUrl = "https://www.amazon.com/";
             pageNum,
             selectNoIndex
         });
-        // let log = fs.readFileSync('./log.txt')
-        // fs.writeFileSync('log.txt', log + '\n' + JSON.stringify(result))
-        let res = db.product.insertMany(result)
+ 
+
         console.log('pageNum:' + pageNum, 'selectNoIndex:' + selectNoIndex)
         console.log('插入数据')
         let flag = await page.evaluate(pageNum => {
