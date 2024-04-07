@@ -1,184 +1,151 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs')
-const db = require('./mongodb')
-const Bluebird = require('Bluebird')
-    // 等待3000毫秒
+
+const xlsx = require('xlsx');
+const workbook = xlsx.readFile('./file.xlsx');
+// 获取第一个工作表的名称
+const firstSheetName = workbook.SheetNames[0];
+const SheetKeys = []
+// 获取第一个工作表的数据
+const worksheet = workbook.Sheets[firstSheetName];
+// 从第一个工作表中提取第一列数据
+const firstColumnData = [];
+for (let rowNum = 1;; rowNum++) {
+    // 构建 Excel 单元格地址
+    const cellAddress = 'A' + rowNum;
+    // 从单元格中获取数据
+    const cellData = worksheet[cellAddress];
+    // 如果单元格为空，说明到达了数据末尾
+    if (!cellData) {
+        break;
+    }
+    // 将数据添加到数组中
+    firstColumnData.push(cellData.v);
+}
+console.log('第一列数据:', firstColumnData);
+
+// 等待3000毫秒
 const sleep = time => new Promise(resolve => {
     setTimeout(resolve, time);
 })
 
-const url = `http://chn.lottedfs.cn/kr/display/category/first?dispShopNo1=1200001&treDpth=1`;
-const loginUrl = "https://www.amazon.com/";
-(async() => {
-    let dispShopNo1 = ''
-    let selectNoIndex = 0
-    let ShopNo = 0
-    let pageNum = 0
-    let isFirst = true
-        // 启动一个浏览器
+
+const loginUrl = "https://sellercentral.amazon.com/";
+(async () => {
+
+
+    // 启动一个浏览器
     const brower = await puppeteer.launch({
         // args: ['--no-sandbox'],
         // dumpio: false,
         headless: false,
         // See flags at https://peter.sh/experiments/chromium-command-line-switches/.
         args: [
-            '--disable-infobars', // Removes the butter bar.
+            // '--disable-infobars', // Removes the butter bar.
             '--start-maximized',
-            '--start-fullscreen',
+            // '--start-fullscreen',
             '--window-size=1920,1080',
-            '--disable-web-security'
+            // '--disable-web-security'
             // '--kiosk',
         ],
     });
 
     const page = await brower.newPage() // 开启一个新页面
-
-    async function ctn() {
-        pageNum = 0
-        await page.waitForSelector('.paging');
-
-        await page.evaluate(pageNum => {
-            let $ = window.$
-            window.fn_movePage(pageNum)
-
-        }, pageNum)
-        let finalResponse = await page.waitForResponse(response => response.url() === 'http://chn.lottedfs.cn/kr/member/getLoginSessAjax' && response.status() === 200, {
-            timeout: 60000
-        });
-    }
-    async function changeShopNo() {
-        pageNum = 0
-        selectNoIndex++
-        return dispShopNo1 = await page.evaluate(selectNoIndex => {
-            let $ = window.$
-            $('#category').click()
-            if (!$('#mainCateInfo > li:nth-child(' + selectNoIndex + ') > a').length) {
-                return false
-            }
-            let no = $('#mainCateInfo > li:nth-child(' + selectNoIndex + ') > a').attr('href').match(/\=(\w+)\&/)[1]
-            $('#mainCateInfo > li:nth-child(' + selectNoIndex + ') > a')[0].click()
-            return no
-        }, selectNoIndex)
-    }
-
-    async function login() {
-        await page.waitForSelector('#lpointBtn')
-        await page.evaluate(() => {
-            let $ = window.$
-            $('#lpointBtn').click()
-            $('#loginLpId').val('398707650@qq.com')
-            $('#password').val('!q2w3e4r')
-            $('#lpointTabBody .formGroup .inputArea .right .btnL').click()
-
-        })
-    }
-    async function getData() {
-
-        await page.waitForSelector('.paging');
-        let result = await page.evaluate(temp => {
-            // 拿到页面上的jQuery
-            let $ = window.$;
-            let items = $('.imgType .productMd');
-            let links = [];
-            if (items.length >= 1) {
-                items.each((index, item) => {
-                    let it = $(item)
-                    let imgsrc = it.find('.img img').attr('src')
-                    let title = it.find('.brand') && it.find('.brand').text()
-                    let price = it.find('.price .cancel').text()
-                    let priceOff = it.find('.price .off') && it.find('.price .off').text()
-                    let productInfo = it.find('.price .off') && it.find('.product').text()
-                    let productId = it.find('.link.gaEvtTg.js-contextmenu').attr('href').match(/[0-9]+/)[0]
-                    let discountD = it.find('.discount strong').text()
-                    let discountR = it.find('.discount span').text()
-                    let star = it.find('.evaluation .starIcon').hasClass('five') && '5' ||
-                        it.find('.evaluation .starIcon').hasClass('four') && '4' ||
-                        it.find('.evaluation .starIcon').hasClass('three') && '3' ||
-                        it.find('.evaluation .starIcon').hasClass('two') && '2' ||
-                        it.find('.evaluation .starIcon').hasClass('one') && '1' || '0'
-                    let num = it.find('.evaluation .num').text()
-                    links.push({
-                        imgsrc,
-                        title,
-                        price,
-                        productId,
-                        productInfo,
-                        priceOff,
-                        discountD,
-                        discountR,
-                        dispShopNo1: temp.dispShopNo1,
-                        pageNum: temp.pageNum,
-                        selectNoIndex: temp.selectNoIndex,
-                        star,
-                        num
-                    })
-                });
-            }
-            return links
-
-        }, {
-            dispShopNo1,
-            pageNum,
-            selectNoIndex
-        });
-        // let log = fs.readFileSync('./log.txt')
-        // fs.writeFileSync('log.txt', log + '\n' + JSON.stringify(result))
-        let res = db.product.insertMany(result)
-        console.log('pageNum:' + pageNum, 'selectNoIndex:' + selectNoIndex)
-        console.log('插入数据')
-        let flag = await page.evaluate(pageNum => {
-            let $ = window.$
-            return $('.next').length || $('#prdList > div.pagingArea.pt15 > div > a:last-child').text() != pageNum
-
-        }, pageNum)
-        console.log('flag:' + flag)
-        if (flag) {
-            await nextPage()
-        } else {
-            dispShopNo1 = await changeShopNo()
-            if (dispShopNo1) {
-                await page.waitForSelector('.paging');
-                await nextPage()
-            }
+    // 等待进入查询页面
+    
+    // 遍历xlsx数组
+    async function loop() {
+        for (let i = 0; i < firstColumnData.length; i++) {
+            await getResult(firstColumnData[i])
+            break
         }
     }
-    async function nextPage() {
-        pageNum++
-        await page.evaluate(pageNum => {
-            let $ = window.$
-            window.fn_movePage(pageNum)
 
-        }, pageNum)
-        const finalResponse = await page.waitForResponse(response => response.url().indexOf('http://chn.lottedfs.cn/kr/display/GetPrdList') > -1 && response.status() === 200, {
-            timeout: 60000
-        });
-        await page.waitForSelector('.paging');
-        // if (isFirst) {
-        //     isFirst = false
-        // }
-        await getData()
+
+    // 开始查询功能
+
+    async function startWork() {
+        await loop()
+        await toXlsx()
+
+        //  等待查询结果挑书
+    }
+
+    // async function login() {
+    //     await page.waitForSelector('#lpointBtn')
+    //     await page.evaluate(() => {
+    //         let $ = window.$
+    //         $('#lpointBtn').click()
+    //         $('#loginLpId').val('398707650@qq.com')
+    //         $('#password').val('!q2w3e4r')
+    //         $('#lpointTabBody .formGroup .inputArea .right .btnL').click()
+
+    //     })
+    // }
+    async function getResult(key) {
+        // 输入编码
+        try {
+
+
+            await page.evaluate((key) => {
+                let $ = window.$
+                console.log('jq打印')
+                
+                // $('#katal-id-11').val(key)
+                // $('#lpointBtn').click()
+                document.querySelector("#search-recommendations-element-id").shadowRoot.querySelector("#katal-id-11").value=key
+                document.querySelector("#SearchInputContent > div > section.kat-col-md-2 > div > kat-button").shadowRoot.querySelector("button").click()
+            }, key)
+            const searchUrl = 'https://sellercentral.amazon.com/productsearch/v2/search'
+
+            const finalResponse = await page.waitForResponse(response => response.url().indexOf(searchUrl) > -1 && response.status() === 200, {
+                timeout: 0
+            });
+            await page.waitfor(1000)
+            // 判断是否可销售
+            await page.evaluate(({
+                SheetKeys,
+                key
+            }) => {
+                // let $ = window.$
+                let btnText = document.querySelector("#search-result > div > kat-box > div > section.kat-col-md-7.search-row-info > div:nth-child(1) > section.kat-col-xs-5.actions > div > div > kat-dropdown-button").shadowRoot.querySelector("div.button-group-header > button.button").innerText
+                if (btnText === '销售此商品') {
+                    let href = document.querySelector("#search-result > div:nth-child(1) > kat-box > div > section.kat-col-xs-4.search-row-title > a").getAttribute('href')
+                    SheetKeys.push({
+                        key,
+                        href
+                    })
+
+                }
+            }, {
+                SheetKeys,
+                key
+            })
+        } catch (error) {
+            console.log(error)
+        }
+    }
+    async function toXlsx() {
+        // 创建一个新的工作簿
+        const workbook = xlsx.utils.book_new();
+
+        // 创建一个新的工作表
+        const worksheet = xlsx.utils.json_to_sheet(SheetKeys);
+
+        // 将工作表添加到工作簿中
+        xlsx.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+
+        // 将工作簿写入文件
+        xlsx.writeFile(workbook, 'output.xlsx');
     }
     await page.goto(loginUrl, {
         waitUntil: 'networkidle2', // 网络空闲说明已加载完毕
     });
+    await page.waitForSelector('#SearchInputContent > div > section.kat-col-md-2 > div > kat-button',{timeout:0})
 
-    await login();
-    console.log('登录成功')
-        // await page.waitFor(1000)
-
-
-    await page.waitForSelector('#category')
-
-    dispShopNo1 = await changeShopNo()
-
-    // await ctn()
-
-
-    await page.waitForSelector('.paging');
-
-    await nextPage()
-
-
+    await startWork()
+    console.log('开始')
+    // await page.waitFor(1000)
     // 关闭浏览器
     brower.close();
 
