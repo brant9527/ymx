@@ -1,4 +1,4 @@
-﻿const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer');
 const fs = require('fs')
 
 const xlsx = require('xlsx');
@@ -24,6 +24,7 @@ for (let rowNum = 1;; rowNum++) {
 }
 firstColumnData = firstColumnData.splice(1)
 console.log('第一列数据:', firstColumnData);
+const searchUrl = 'https://sellercentral.amazon.com/productsearch/v2/search'
 
 // 等待3000毫秒
 const sleep = time => new Promise(resolve => {
@@ -32,6 +33,7 @@ const sleep = time => new Promise(resolve => {
 
 
 const loginUrl = "https://sellercentral.amazon.com/";
+
 (async () => {
 
 
@@ -47,7 +49,7 @@ const loginUrl = "https://sellercentral.amazon.com/";
             // '--disable-infobars', // Removes the butter bar.
             '--start-maximized',
             // '--start-fullscreen',
-            '--window-size=1920,1080',
+            '--window-size=1920,2080',
             // '--disable-web-security'
             // '--kiosk',
         ],
@@ -55,10 +57,61 @@ const loginUrl = "https://sellercentral.amazon.com/";
 
     const page = await brower.newPage() // 开启一个新页面
     // 等待进入查询页面
-    
+
+    const refreshPage = async () => {
+        try{
+            // await page.evaluate(() => {
+            //     window.addEventListener('beforeunload', (event) => {
+            //       event.preventDefault();
+            //       event.returnValue = '';
+            //     });
+            //   });
+            console.log('Refreshing page...');
+            await page.reload({ waitUntil: 'domcontentloaded' }); // 重新加载页面
+            console.log('Page refreshed!');
+        } catch (error) {
+              // 如果5秒内特定请求未出现，刷新页面
+        console.log(error)
+        }
+    };
+
+    const watch  =async ()=>{
+        console.log('开始循环');
+            let timer = null
+
+            try {
+                page.on('request', request => {
+                     
+                        if (request.url().includes(searchUrl)) {
+                    console.log('request.url()=>>',request.url())
+
+                            
+                          console.log('Request detected:', request.url());
+                               
+                                    clearInterval(timer);
+                          
+                                    timer = setInterval(async ()=>{
+                                    await refreshPage();
+                                    },30000)
+                                
+                              
+                        }
+                      });
+
+          // 等待特定请求出现或者5秒超时
+              
+              
+              // 如果在5秒内特定请求出现，结束循环
+              
+            } catch (error) {
+              // 如果5秒内特定请求未出现，刷新页面
+            }
+          
+    }
+   
     // 遍历xlsx数组
     async function loop() {
-        console.log('bianli')
+      
         for (let i = 0; i < firstColumnData.length; i++) {
         console.log('bianli',i)
 
@@ -69,11 +122,23 @@ const loginUrl = "https://sellercentral.amazon.com/";
 
 
     // 开始查询功能
-
+    page.on('dialog', async dialog => {
+        console.log(`Dialog message: ${dialog.message()}`);
+        await dialog.accept();
+      });
     async function startWork() {
+
         await page.waitFor(4000)
-        await loop()
-        await toXlsx()
+        try{
+         watch()
+         await loop()
+         await toXlsx()
+        }catch{
+            toXlsx()
+        }
+
+        
+
 
         //  等待查询结果挑书
     }
@@ -83,28 +148,31 @@ const loginUrl = "https://sellercentral.amazon.com/";
         console.log('key>>',key)
         try {
 
-            // await page.waitFor(1000)
+            await page.waitFor(500)
             const ele = await page.$('#SearchInputContent > div > section.kat-col-md-10 > kat-input-group')
             if(!ele){
-              
-                await page.click('#favorite-pages-links-list > a:nth-child(1)')
-                await page.waitForSelector('#SearchInputContent > div > section.kat-col-md-10 > kat-input-group')
-                return
+                    return   
             }
             const {x,y} =await ele.boundingBox()
             console.log('x=>',x,y)
             await page.mouse.click(x+40,y+30)
             // await page.$eval('input[type=text]',input=>input.value = '')
             await page.keyboard.down('Control')
+            await page.waitFor(100)
+
             await page.keyboard.press('A')
+            await page.waitFor(100)
+
             await page.keyboard.up('Control')
+            await page.waitFor(100)
 
             await page.keyboard.press('Delete')
             await page.waitFor(1000)
             
            
-
             await page.keyboard.type(key)
+            await page.waitFor(100)
+
             await page.click('#SearchInputContent > div > section.kat-col-md-2 > div > kat-button')
             // await page.evaluate((key) => {
             //     let $ = window.$
@@ -116,29 +184,30 @@ const loginUrl = "https://sellercentral.amazon.com/";
             //     // document.querySelector("#SearchInputContent > div > section.kat-col-md-2 > div > kat-button").shadowRoot.querySelector("button").click()
             // }, key)
             console.log('等待请求响应')
-            const searchUrl = 'https://sellercentral.amazon.com/productsearch/v2/search'
 
             const finalResponse = await page.waitForResponse(response => response.url().indexOf(searchUrl) > -1 && response.status() === 200, {
                 timeout: 0
             });
             console.log('xiangyingjieshu')
-            
+            page.waitFor(1000)
             // 判断是否可销售
-           let href = await page.evaluate(() => {
+           let obj = await page.evaluate(() => {
                 // let $ = window.$
                 const applyBtn = document.querySelector("#search-result > div > kat-box > div > section.kat-col-md-7.search-row-info > div:nth-child(1) > section.kat-col-xs-5.actions > div > div > kat-dropdown-button")
                 if(!applyBtn){
                     return
                 }
+                let btnCountTxt =  document.querySelector("#search-result > div:nth-child(1) > kat-box > div > section.kat-col-md-7.search-row-info > div:nth-child(1) > section.kat-col-xs-7.attributes > div > section.kat-col-xs-6.search-row-sales-attributes > p:nth-child(2) > a")?.text
+                
                 let btnText = applyBtn.shadowRoot.querySelector("div.button-group-header > button.button").innerText
                 console.log(btnText)
                 if (btnText === '销售此商品') {
                     let href = document.querySelector("#search-result > div:nth-child(1) > kat-box > div > section.kat-col-xs-4.search-row-title > a").getAttribute('href')
-                    return href
+                    return {href,btnCountTxt}
                 }
             })
-           if(href){
-             SheetKeys.push({key,href})
+           if(obj?.href){
+             SheetKeys.push({key,...obj})
            }
            
 
