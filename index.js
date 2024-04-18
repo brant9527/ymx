@@ -66,9 +66,9 @@ const loginUrl = "https://sellercentral.amazon.com/";
             //       event.returnValue = '';
             //     });
             //   });
-            console.log('Refreshing page...');
-            await page.reload({ waitUntil: 'domcontentloaded' }); // 重新加载页面
-            console.log('Page refreshed!');
+            
+            await page.reload({ waitUntil: 'domcontentloaded' ，timeout:50000}); // 重新加载页面
+            
         } catch (error) {
               // 如果5秒内特定请求未出现，刷新页面
         console.log(error)
@@ -83,16 +83,12 @@ const loginUrl = "https://sellercentral.amazon.com/";
                 page.on('request', request => {
                      
                         if (request.url().includes(searchUrl)) {
-                    console.log('request.url()=>>',request.url())
 
-                            
-                          console.log('Request detected:', request.url());
-                               
                                     clearInterval(timer);
                           
                                     timer = setInterval(async ()=>{
                                     await refreshPage();
-                                    },30000)
+                                    },60000)
                                 
                               
                         }
